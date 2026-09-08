@@ -5,6 +5,8 @@
 ; now booting from floppy disk
 ; we would contain our kernel starting from 0x7E00
 
+HIGH_LIMIT_SEGMENT equ (0x7E00 + KERNEL_SIZE) / 16
+
 .start:
   ; init stack
   cli
@@ -23,18 +25,12 @@
 .load_kernel: 
   mov es, si
 
-
-  xor di, di ; problem counter
 .try_read:
   mov ah, 0x02
   mov al, 1 ; read 1 sector
   int 0x13
 
   jnc .read_success
-  inc di
-  cmp di, 4
-  jle .try_read
-  
   int 0x18 ; get it back
 
 .read_success:
@@ -54,7 +50,7 @@
 .done_indexing:
 
   add si, 0x20
-  cmp si, (0x7E00 + KERNEL_SIZE) / 16
+  cmp si, HIGH_LIMIT_SEGMENT
   jl .load_kernel
 
 .stuck:
