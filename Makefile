@@ -16,7 +16,7 @@ all: clean build test
 boot.img: .tmp/boot.bin
 	dd if=/dev/zero of=boot.img bs=1024 count=1440
 	dd if=.tmp/boot.bin of=boot.img conv=notrunc
-	dd if=.tmp/test.bin of=boot.img conv=notrunc seek=1
+	dd if=.test/test.bin of=boot.img conv=notrunc seek=1
 
 build: boot.img
 
