@@ -1,7 +1,5 @@
 [BITS 16]
 
-[ORG 0x7C00]
-
 ; Bootloader
 ; KERNEL_SIZE in bytes
 
@@ -13,6 +11,7 @@ HEADS_MAX equ 1
 .init:
   ; Setup stack
   cli                            ; disable interrupts
+  cld                            ; clear direction flag
   xor ax, ax
   mov ss, ax
   mov sp, 0x7C00                 ; set stack pointer
@@ -26,7 +25,7 @@ HEADS_MAX equ 1
   mov si, 0x07E0
 
   mov di, SECTORS_TO_READ
-.load_kernel
+.load_kernel:
   mov es, si
   mov ah, 0x02
   mov al, 1                      ; read 1 sector
@@ -50,9 +49,53 @@ HEADS_MAX equ 1
   jnz .load_kernel
 
 
-.stuck:
-  jmp .stuck
+.protected_mode_configuration:
+  lgdt [gdt_pseudodescriptor]
+  mov eax, cr0
+  or eax, 1                      ; set PE bit
+  mov cr0, eax
 
+  jmp 0x08 : .trampoline         ; 0x08 - gdt offset of kernel code segment descriptor
+
+[BITS 32]
+.trampoline:
+  mov eax, 0x10                  ; 0x10 - gdt offset of kernel data segment descriptor
+  mov ds, eax
+  mov ss, eax
+  mov es, eax
+  mov fs, eax
+  mov gs, eax
+
+[EXTERN kernel_entry]
+  call kernel_entry
+
+gdt_pseudodescriptor:
+  .limit:                                   dw 0x17
+  .base:                                    dd .gdt
+
+align 8
+.gdt:
+  .null_descriptor:                         dq 0
+  kernel_code_segment_descriptor:
+    .limit_low:                             dw 0xFFFF
+    .base_low:                              dw 0x0000
+    .base_mid:                              db 0x00
+    .P_DPL_S_TYPE:                          db 0b10011010
+    .G_DorB_0_AVL_limit:                    db 0b11001111
+    .base_high:                             db 0x00
+  kernel_data_segment_descriptor:
+    .limit_low:                             dw 0xFFFF
+    .base_low:                              dw 0x0000
+    .base_mid:                              db 0x00
+    .P_DPL_S_TYPE:                          db 0b10010010
+    .G_DorB_0_AVL_limit:                    db 0b11001111
+    .base_high:                             db 0x00
+
+
+%include "./src/utils.asm"
+
+
+[BITS 16]
 .fatal:
   int 0x18                        ; get back to BIOS
 

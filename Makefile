@@ -2,23 +2,18 @@
 # Variables
 
 # Build tools
-NASM = nasm -f bin 
+NASM = nasm
+CC = gcc
+FLAGS = -std=c99 -m32 -O2 -ffreestanding -no-pie -fno-pie -mno-sse -fno-stack-protector
 
-
+BIN_FLAG = -f bin
+ELF_FLAG = -felf
 # =============================================================================
 # Tasks
 
 all: clean build test
 
-.tmp/boot.bin: src/boot.asm
-	$(NASM) src/boot.asm -o .tmp/boot.bin -DKERNEL_SIZE=333256
-
-boot.img: .tmp/boot.bin
-	dd if=/dev/zero of=boot.img bs=1024 count=1440
-	dd if=.tmp/boot.bin of=boot.img conv=notrunc
-	dd if=.test/8259A.pdf of=boot.img conv=notrunc seek=1
-
-build: boot.img
+build: c_compilation asm_compilation linking reduce_elf os.img
 
 clean:
 	rm -f *.img
@@ -26,10 +21,26 @@ clean:
 	mkdir .tmp
 
 test: build
-	qemu-system-i386 -cpu pentium2 -m 1g -fda boot.img -monitor stdio -device VGA
+	qemu-system-i386 -cpu pentium2 -m 1g -fda os.img -monitor stdio -device VGA
 
 debug: build
-	qemu-system-i386 -cpu pentium2 -m 1g -fda boot.img -monitor stdio -device VGA -s -S &
+	qemu-system-i386 -cpu pentium2 -m 1g -fda os.img -monitor stdio -device VGA -s -S &
 	gdb
 
 .PHONY: all build clean test debug
+
+c_compilation: src/kernel.c
+	$(CC) $(FLAGS) -c src/kernel.c -o .tmp/kernel.o
+
+asm_compilation: src/boot.asm
+	$(NASM) $(ELF_FLAG) -DKERNEL_SIZE=8192 src/boot.asm -o .tmp/boot.o
+
+linking: .tmp/boot.o .tmp/kernel.o
+	ld -m elf_i386 .tmp/boot.o .tmp/kernel.o -T ./linker/link.ld -o .tmp/os.elf
+
+reduce_elf: .tmp/os.elf
+	objcopy -I elf32-i386 -O binary .tmp/os.elf .tmp/os.bin
+
+os.img: .tmp/os.bin
+	dd if=/dev/zero of=os.img bs=1024 count=1440
+	dd if=.tmp/os.bin of=os.img conv=notrunc
