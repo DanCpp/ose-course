@@ -1,6 +1,11 @@
-#include <stddef.h>
 #ifndef TYPES_H
 #define TYPES_H
+
+#define NULL ((void*)0)
+
+typedef unsigned long size_t;
+typedef long pdiff;
+typedef unsigned long uptr;
 
 typedef unsigned char u8;
 typedef unsigned short u16;

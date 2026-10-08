@@ -6,6 +6,7 @@ NASM = nasm
 CC = gcc
 FLAGS = -std=c99 -m32 -O2 -ffreestanding -no-pie -fno-pie -mno-sse -fno-stack-protector
 SOURCES = $(wildcard src/*.c)
+KERNEL_SIZE_PARAM = 8192
 
 BIN_FLAG = -f bin
 ELF_FLAG = -felf
@@ -31,7 +32,7 @@ debug: build
 .PHONY: all build clean test debug
 
 c_compilation: $(SOURCES)
-	$(CC) $(FLAGS) -r $(SOURCES) -o .tmp/kernel.o
+	$(CC) $(FLAGS) -DDEBUG -DKERNEL_SIZE=8192 -r $(SOURCES) -o .tmp/kernel.o
 
 asm_compilation: src/boot.asm
 	$(NASM) $(ELF_FLAG) -DKERNEL_SIZE=8192 src/boot.asm -o .tmp/boot.o

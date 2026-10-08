@@ -1,4 +1,5 @@
 #include "types.h"
+#include "kernel_panic.h"
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -152,7 +153,8 @@ void apply_escape(char c) {
       cursor.x = 0;
       break;
     default:
-      break; // will be kernel_panic
+      kernel_panic("Unknown escape sequence: %c\n", c);
+      break;
   }
 }
 
@@ -160,37 +162,43 @@ bool is_escape_sequence(char c) {
   return c == '\n' || c == '\r';
 }
 
-void apply_format(char c, va_list vargs) {
+void apply_format(char c, va_list* vargs) {
   switch(c) {
     case 'c':
-      char ch = (char)va_arg(vargs, int);
+      char ch = (char)va_arg(*vargs, int);
       putchar(ch);
       break;
     case 's':
-      const char* str = va_arg(vargs, const char*);
+      const char* str = va_arg(*vargs, const char*);
       print_string(str);
       break;
     case 'd':
-      i32 num = va_arg(vargs, i32);
+      i32 num = va_arg(*vargs, i32);
       print_signed(num, 10);
       break;
     case 'u':
-      u32 unum = va_arg(vargs, u32);
+      u32 unum = va_arg(*vargs, u32);
       print_unsigned(unum, 10);
       break;
     case 'x':
-      u32 hexnum = va_arg(vargs, u32);
+      u32 hexnum = va_arg(*vargs, u32);
       print_unsigned(hexnum, 16);
       break;
     case 'b':
-      u32 binum = va_arg(vargs, u32);
+      u32 binum = va_arg(*vargs, u32);
       print_unsigned(binum, 2);
+      break;
+    case 'p':
+      void* ptr = va_arg(*vargs, void*);
+      print_string("0x");
+      print_unsigned((u32)ptr, 16);
       break;
     case '%':
       putchar('%');
       break;
     default:
-      break; // will be kernel_panic
+      kernel_panic("Unknown format specifier: %c\n", c);
+      break;
   }
 }
 
@@ -206,7 +214,7 @@ void vprintf(const char* fmt, va_list vargs) {
     } else if (c == '%') {
       ++p;
       c = *p;
-      apply_format(c, vargs);
+      apply_format(c, &vargs);
     } else {
       putchar(c);
     }
