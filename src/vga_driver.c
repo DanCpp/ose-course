@@ -1,5 +1,6 @@
 #include "types.h"
 #include "kernel_panic.h"
+#include "memory_utils.h"
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -40,9 +41,7 @@ vga_color background_color = VGA_COLOR_BLACK;
 u16* mem = (u16*)VGA_MEMORY_START;
 
 void vga_clear_screen() {
-  for (u32 i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
-    mem[i] = 0;
-  }
+  memzero(mem, VGA_WIDTH * VGA_HEIGHT * sizeof(u16));
 }
 
 void vga_print_char(char c, size_t x, size_t y) {
@@ -56,15 +55,8 @@ void vga_print_char(char c, size_t x, size_t y) {
 }
 
 void vga_scroll_down() {
-  for (u32 y = 1; y < VGA_HEIGHT; y++) {
-    for (u32 x = 0; x < VGA_WIDTH; x++) {
-      mem[(y - 1) * VGA_WIDTH + x] = mem[y * VGA_WIDTH + x];
-    }
-  }
-
-  for (u32 x = 0; x < VGA_WIDTH; x++) {
-    mem[(VGA_HEIGHT - 1) * VGA_WIDTH + x] = 0;
-  }
+  memmove(mem, mem + VGA_WIDTH, (VGA_HEIGHT - 1) * VGA_WIDTH * sizeof(u16));
+  memzero(mem + (VGA_HEIGHT - 1) * VGA_WIDTH, VGA_WIDTH * sizeof(u16));
 }
 
 void init_printer() {
@@ -132,12 +124,6 @@ void print_signed(i32 num, u8 radix) {
   print_unsigned((u32)num, radix);
 }
 
-void clear_current_line() {
-  for (u32 x = 0; x < VGA_WIDTH; x++) {
-    mem[cursor.y * VGA_WIDTH + x] = 0;
-  }
-}
-
 void apply_escape(char c) {
   switch(c) {
     case '\n':
@@ -149,7 +135,6 @@ void apply_escape(char c) {
       }
       break;
     case '\r':
-      clear_current_line();
       cursor.x = 0;
       break;
     default:
