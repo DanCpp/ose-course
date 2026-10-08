@@ -2,4 +2,5 @@
 .my_boot
 .test
 *.txt
+*.img
 bar
