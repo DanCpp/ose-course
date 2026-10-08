@@ -32,10 +32,11 @@ debug: build
 .PHONY: all build clean test debug
 
 c_compilation: $(SOURCES)
-	$(CC) $(FLAGS) -DDEBUG -DKERNEL_SIZE=8192 -r $(SOURCES) -o .tmp/kernel.o
+	$(CC) $(FLAGS) -DDEBUG -r $(SOURCES) -o .tmp/kernel.o
 
 asm_compilation: src/boot.asm
-	$(NASM) $(ELF_FLAG) -DKERNEL_SIZE=8192 src/boot.asm -o .tmp/boot.o
+	$(eval KERNEL_SIZE := $(shell wc -c < .tmp/kernel.o | tr -d ' '))
+	$(NASM) $(ELF_FLAG) -DKERNEL_SIZE=$(KERNEL_SIZE) src/boot.asm -o .tmp/boot.o
 
 linking: .tmp/boot.o .tmp/kernel.o
 	ld -m elf_i386 .tmp/boot.o .tmp/kernel.o -T ./linker/link.ld -o .tmp/os.elf

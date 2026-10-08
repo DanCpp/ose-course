@@ -6,12 +6,19 @@ extern void endless_loop();
 
 void kernel_entry() {
     init_printer();
-    printf("Kernel size is: %u bytes\n", KERNEL_SIZE);
     u32 size = 1;
     u32 alignment = 1;
+    uptr prev_address = 0;
     while (1) {
         void* ptr = malloc_undead(size, alignment);
-        printf("Allocated %u bytes at address %p with alignment %u\n", size, ptr, alignment);
+        uptr addr = (uptr)ptr;
+        printf("Allocated %u bytes at address %p with alignment %u\n", size, addr, alignment);
+        printf("Decimal addr: %u\n", addr);
+
+        assert(addr % alignment == 0, "Address is not aligned properly");
+        assert(addr > prev_address, "Address is not increasing");
+
+        prev_address = addr;
         size *= 2;
         alignment += 1;
 
