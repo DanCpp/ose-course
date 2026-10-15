@@ -9,9 +9,6 @@ go_cli:
 endless_loop:
   jmp endless_loop
 
-[BITS 32]
-
-
 ; my calling convention:
 ; edi, esi, ecx - first three arguments
 ; edi, esi, ecx - must be unchanged by the end of a function

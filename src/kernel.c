@@ -1,10 +1,22 @@
 #include "vga_driver.h"
 #include "assert.h"
 #include "undead.h"
+#include "types.h"
 
 extern void endless_loop();
 
 void kernel_entry() {
+    assert(sizeof(u32) == 4, "u32 is not 4 bytes");
+    assert(sizeof(u16) == 2, "u16 is not 2 bytes");
+    assert(sizeof(uptr) == sizeof(void*), "uptr is not the same size as void*");
+    assert(sizeof(size_t) == sizeof(void*), "size_t is not the same size as void*");
+    assert(sizeof(u64) == 8, "u64 is not 8 bytes");
+    assert(sizeof(i32) == 4, "i32 is not 4 bytes");
+    assert(sizeof(i16) == 2, "i16 is not 2 bytes");
+    assert(sizeof(i64) == 8, "i64 is not 8 bytes");
+    assert(sizeof(u8) == 1, "u8 is not 1 byte");
+    assert(sizeof(i8) == 1, "i8 is not 1 byte");
+
     init_printer();
     u32 size = 1;
     u32 alignment = 1;

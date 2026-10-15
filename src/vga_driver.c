@@ -167,10 +167,12 @@ void apply_format(char c, va_list* vargs) {
       break;
     case 'x':
       u32 hexnum = va_arg(*vargs, u32);
+      print_string("0x");
       print_unsigned(hexnum, 16);
       break;
     case 'b':
       u32 binum = va_arg(*vargs, u32);
+      print_string("0b");
       print_unsigned(binum, 2);
       break;
     case 'p':
@@ -197,8 +199,7 @@ void vprintf(const char* fmt, va_list vargs) {
     if (is_escape_sequence(c)) {
       apply_escape(c);
     } else if (c == '%') {
-      ++p;
-      c = *p;
+      c = *(++p);
       apply_format(c, &vargs);
     } else {
       putchar(c);

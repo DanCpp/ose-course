@@ -8,6 +8,10 @@
 uptr current_address = ARENA_START;
 
 void* malloc_undead(size_t size, size_t alignment) {
+  if (alignment == 0) {
+    kernel_panic("Alignment must be greater than 0\n");
+  }
+  
   if (size == 0) {
     size = 1;
   }
