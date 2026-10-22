@@ -5,6 +5,13 @@ go_cli:
   cli
   ret
 
+[GLOBAL go_lidt]
+go_lidt:
+  ; esp + 4 - pointer to the IDT descriptor
+  mov eax, dword [esp + 4]
+  lidt [eax]
+  ret
+
 [GLOBAL endless_loop]
 endless_loop:
   jmp endless_loop
@@ -81,4 +88,53 @@ memmove:
   pop esi
   pop ebx
   pop ebp
+  ret
+
+[EXTERN universal_handler]
+
+[GLOBAL collect_context]
+collect_context:
+  push ds
+  push es
+  push fs
+  push gs
+  pusha
+  mov ebx, esp
+  and esp, -16
+  cld
+  mov eax, 0x10
+  mov ds, eax
+  mov es, eax
+  mov fs, eax
+  mov gs, eax
+  push 0
+  push 0
+  push 0
+  push ebx
+  call universal_handler
+
+[GLOBAL setup_registers]
+setup_registers:
+  mov eax, 0
+  mov ecx, 1
+  mov edx, 2
+  mov ebx, 3
+  mov ebp, 4
+  mov esi, 5
+  mov edi, 6
+  ret
+
+[GLOBAL first_challenge]
+first_challenge:
+  idiv eax
+  ret
+
+[GLOBAL second_challenge]
+second_challenge:
+  int 0x42
+  ret
+
+[GLOBAL third_challenge]
+third_challenge:
+  sti
   ret
