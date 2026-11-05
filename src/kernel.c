@@ -20,6 +20,6 @@ void kernel_entry() {
     // second_challenge();
     // third_challenge();
 
-
+    printf("%s", "a\nb");
     endless_loop();
 }

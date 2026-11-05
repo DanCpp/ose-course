@@ -66,21 +66,46 @@ void init_printer() {
   vga_clear_screen();
 }
 
+void go_next_line() {
+  cursor.x = 0;
+  cursor.y++;
+  if (cursor.y >= VGA_HEIGHT) {
+    vga_scroll_down();
+    cursor.y = VGA_HEIGHT - 1;
+  }
+}
+
 void cursor_next() {
   cursor.x++;
   if (cursor.x >= VGA_WIDTH) {
-    cursor.x = 0;
-    cursor.y++;
-    if (cursor.y >= VGA_HEIGHT) {
-      vga_scroll_down();
-      cursor.y = VGA_HEIGHT - 1;
-    }
+    go_next_line();
   }
 }
 
 
+void apply_escape(char c) {
+  switch(c) {
+    case '\n':
+      go_next_line();
+      break;
+    case '\r':
+      cursor.x = 0;
+      break;
+    default:
+      kernel_panic("Unknown escape sequence: %c\n", c);
+      break;
+  }
+}
+
+bool is_escape_sequence(char c) {
+  return c == '\n' || c == '\r';
+}
 
 void putchar(char c) {
+  if (is_escape_sequence(c)) {
+    apply_escape(c);
+    return;
+  }
   vga_print_char(c, cursor.x, cursor.y);
   cursor_next();
 }
@@ -122,29 +147,6 @@ void print_signed(i32 num, u8 radix) {
     num = -num;
   }
   print_unsigned((u32)num, radix);
-}
-
-void apply_escape(char c) {
-  switch(c) {
-    case '\n':
-      cursor.x = 0;
-      cursor.y++;
-      if (cursor.y >= VGA_HEIGHT) {
-        vga_scroll_down();
-        cursor.y = VGA_HEIGHT - 1;
-      }
-      break;
-    case '\r':
-      cursor.x = 0;
-      break;
-    default:
-      kernel_panic("Unknown escape sequence: %c\n", c);
-      break;
-  }
-}
-
-bool is_escape_sequence(char c) {
-  return c == '\n' || c == '\r';
 }
 
 void apply_format(char c, va_list* vargs) {
