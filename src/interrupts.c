@@ -82,14 +82,14 @@ bool comes_with_error_code(u16 vector) {
 
 InterruptDescriptor setup_interrupt_descriptor(const void* handler) {
   return (InterruptDescriptor) {
-    .offset_low = (u32)handler & 0xFFFF,
+    .offset_low = GET_LOW_16_BITS((u32)handler),
     .segment_selector = 0x08, // Kernel code segment
     .reserved = 0,
     .gate_type = INTERRUPT_GATE,
     .D0 = 0b01,
     .DPL = 0b00,
     .present = 1,
-    .offset_high = ((u32)handler >> 16) & 0xFFFF
+    .offset_high = GET_LOW_16_BITS((u32)handler >> 16)
   };
 }
 
