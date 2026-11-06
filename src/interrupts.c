@@ -4,34 +4,14 @@
 #include "types.h"
 #include "assert.h"
 #include "vga_driver.h"
+#include "interrupts.h"
 
 #include <stdbool.h>
-
-
-#define VECTORS_NUM 256
-#define TRAMPOLINE_SIZE 0x8
-
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-#define GET_LOW_16_BITS(x) ((u16)((x) & 0xFFFF))
 
 
 extern void collect_context();
 extern void go_lidt(void* idt_descriptor);
 
-typedef enum {
-  INTERRUPT_GATE = 0b110,
-  TRAP_GATE = 0b111
-} GateType;
-
-typedef struct {
-  u32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
-  u32 gs, fs, es, ds;
-  u32 vector;
-  u32 error_code;
-  u32 eip;
-  u32 cs;
-  u32 eflags;
-} context;
 
 #pragma pack(push, 1)
 typedef struct {
@@ -46,7 +26,22 @@ typedef struct {
 } InterruptDescriptor;
 #pragma pack(pop)
 
+static InterruptHandler interrupt_handlers[VECTORS_NUM] = {0};
+static InterruptDescriptor* idt;
+
+void override_interrupt_handler(u16 vector, InterruptHandler handler, GateType gate_type) {
+  idt[vector].gate_type = gate_type;
+  interrupt_handlers[vector] = handler;
+}
+
 void universal_handler(context* ctx) {
+  InterruptHandler handler = interrupt_handlers[GET_LOW_16_BITS(ctx->vector)];
+  if (handler) {
+    handler(ctx);
+    return;
+  }
+
+
   kernel_panic(
     "unhandled interrupt #%u at %x : %x\n\n"
     "Registers:\n"
@@ -65,7 +60,6 @@ void universal_handler(context* ctx) {
     ctx->error_code);
 }
 
-
 bool comes_with_error_code(u16 vector) {
   static const u16 vectors_with_error_code[] = {
     8, 10, 11, 12, 13, 14, 17, 21
@@ -80,12 +74,12 @@ bool comes_with_error_code(u16 vector) {
   return false;
 }
 
-InterruptDescriptor setup_interrupt_descriptor(const void* handler) {
+InterruptDescriptor setup_interrupt_descriptor(const void* handler, GateType gate_type) {
   return (InterruptDescriptor) {
     .offset_low = GET_LOW_16_BITS((u32)handler),
     .segment_selector = 0x08, // Kernel code segment
     .reserved = 0,
-    .gate_type = INTERRUPT_GATE,
+    .gate_type = gate_type,
     .D0 = 0b01,
     .DPL = 0b00,
     .present = 1,
@@ -116,24 +110,23 @@ void* generate_trampolines() {
   return trampolines;
 }
 
-
-void* generate_idt(const u8* trampolines) {
+void* generate_idt(const u8* trampolines, GateType gate_type) {
   InterruptDescriptor* idt = malloc_undead(VECTORS_NUM * sizeof(InterruptDescriptor), 8);
 
   for (u16 vector = 0; vector < VECTORS_NUM; ++vector) {
     const u8* trampoline = trampolines + vector * TRAMPOLINE_SIZE;
-    idt[vector] = setup_interrupt_descriptor(trampoline);
+    idt[vector] = setup_interrupt_descriptor(trampoline, gate_type);
   }
 
   return idt;
 }
 
-void setup_interrupts() {
+void setup_interrupts(GateType gate_type) {
   assert(sizeof(InterruptDescriptor) == 8, "InterruptDescriptor size is not 8 bytes");
   assert(sizeof(context) == 17 * sizeof(u32), "Context size is not 17 * sizeof(u32)");
 
   void* trampolines = generate_trampolines();
-  void* idt = generate_idt(trampolines);
+  idt = generate_idt(trampolines, gate_type);
 
   u16 idt_limit = VECTORS_NUM * sizeof(InterruptDescriptor) - 1;
   u64 idt_base = (u64)idt;

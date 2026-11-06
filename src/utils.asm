@@ -5,6 +5,11 @@ go_cli:
   cli
   ret
 
+[GLOBAL go_sti]
+go_sti:
+  sti
+  ret
+
 [GLOBAL go_lidt]
 go_lidt:
   ; esp + 4 - pointer to the IDT descriptor
@@ -121,28 +126,37 @@ collect_context:
   add esp, 8 ; pop error code and vector number
   iret
 
-[GLOBAL setup_registers]
-setup_registers:
-  mov eax, 0
-  mov ecx, 1
-  mov edx, 2
-  mov ebx, 3
-  mov ebp, 4
-  mov esi, 5
-  mov edi, 6
+; void delay()
+[GLOBAL delay]
+delay:
+  push ebx
+
+  cpuid
+  cpuid
+  cpuid
+  cpuid
+  cpuid
+
+  pop ebx
   ret
 
-[GLOBAL first_challenge]
-first_challenge:
-  idiv eax
+; void write_to_port(u16 port, u8 value)
+[GLOBAL write_to_port]
+write_to_port:
+  ; esp + 4 - port
+  ; esp + 8 - value
+
+  mov dx, word [esp + 4]
+  mov al, byte [esp + 8]
+
+  out dx, al
   ret
 
-[GLOBAL second_challenge]
-second_challenge:
-  int 0x42
-  ret
+; u8 read_from_port(u16 port)
+[GLOBAL read_from_port]
+read_from_port:
+  ; esp + 4 - port
 
-[GLOBAL third_challenge]
-third_challenge:
-  sti
+  mov dx, word [esp + 4]
+  in al, dx
   ret
