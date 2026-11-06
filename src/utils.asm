@@ -112,6 +112,14 @@ collect_context:
   push 0
   push ebx
   call universal_handler
+  mov esp, ebx
+  popa
+  pop gs
+  pop fs
+  pop es
+  pop ds
+  add esp, 8 ; pop error code and vector number
+  iret
 
 [GLOBAL setup_registers]
 setup_registers:
