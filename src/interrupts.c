@@ -117,6 +117,14 @@ void* generate_trampolines() {
 }
 
 
+void* generate_trampolines_1byte() {
+  u8* trampolines = malloc_undead(VECTORS_NUM, 8);
+  for (u16 vector = 0; vector < VECTORS_NUM; ++vector) {
+    trampolines[vector] = 0xCC; // int3
+  }
+  return trampolines;
+}
+
 void* generate_idt(const u8* trampolines) {
   InterruptDescriptor* idt = malloc_undead(VECTORS_NUM * sizeof(InterruptDescriptor), 8);
 
@@ -128,12 +136,30 @@ void* generate_idt(const u8* trampolines) {
   return idt;
 }
 
+void* generate_idt_1byte(const u8* trampolines) {
+  InterruptDescriptor* idt = malloc_undead(VECTORS_NUM * sizeof(InterruptDescriptor), 8);
+
+  for (u16 vector = 0; vector < VECTORS_NUM; ++vector) {
+    const u8* trampoline = trampolines + vector;
+    if (vector == 0) {
+      continue; // Skip divide by zero interrupt
+    }
+    if (vector == 3) {
+      idt[vector] = setup_interrupt_descriptor(collect_context); 
+      continue;
+    }
+    idt[vector] = setup_interrupt_descriptor(trampoline);
+  }
+
+  return idt;
+}
+
 void setup_interrupts() {
   assert(sizeof(InterruptDescriptor) == 8, "InterruptDescriptor size is not 8 bytes");
   assert(sizeof(context) == 17 * sizeof(u32), "Context size is not 17 * sizeof(u32)");
 
-  void* trampolines = generate_trampolines();
-  void* idt = generate_idt(trampolines);
+  void* trampolines = generate_trampolines_1byte();
+  void* idt = generate_idt_1byte(trampolines);
 
   u16 idt_limit = VECTORS_NUM * sizeof(InterruptDescriptor) - 1;
   u64 idt_base = (u64)idt;

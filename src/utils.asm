@@ -138,3 +138,8 @@ second_challenge:
 third_challenge:
   sti
   ret
+
+[GLOBAL byte_experiment]
+byte_experiment:
+  idiv eax
+  ret
